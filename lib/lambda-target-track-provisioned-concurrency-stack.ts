@@ -1,7 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as applicationautoscaling from 'aws-cdk-lib/aws-applicationautoscaling'
+import * as applicationautoscaling from 'aws-cdk-lib/aws-applicationautoscaling';
+
+// Alarmをカスタマイズするときに利用する
+// import { Metric } from 'aws-cdk-lib/aws-cloudwatch';
 
 export class LambdaTargetTrackProvisionedConcurrencyStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -12,7 +15,7 @@ export class LambdaTargetTrackProvisionedConcurrencyStack extends cdk.Stack {
       description: "ターゲット追跡型のプロビジョニング済み同時実行の検証用Lambda",
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'lambda_function.lambda_handler',
-      code: lambda.Code.fromAsset(`../target_tracking_provisioned_concurrency/lib`),
+      code: lambda.Code.fromAsset(`../lambda-target-track-provisioned-concurrency/lib`),
       timeout: cdk.Duration.seconds(600),
       memorySize: 256,
     });
@@ -43,10 +46,35 @@ export class LambdaTargetTrackProvisionedConcurrencyStack extends cdk.Stack {
 
     // ターゲット追跡スケーリングの追加
     scalingTarget.scaleToTrackMetric('TargetTracking', {
-      targetValue: 0.6,
+      targetValue: 0.5,
       predefinedMetric: applicationautoscaling.PredefinedMetric.LAMBDA_PROVISIONED_CONCURRENCY_UTILIZATION,
       scaleInCooldown: cdk.Duration.seconds(10),
       scaleOutCooldown: cdk.Duration.seconds(10),
     });
+
+
+
+    // CloudWatchメトリクスの定義
+    // const requestCountMetric = new Metric({
+    //   namespace: 'AWS/Lambda',
+    //   metricName: 'Invocations',
+    //   dimensionsMap: {
+    //     'FunctionName': lambdaFunction.functionName,
+    //     'Resource': `${lambdaFunction.functionName}:${alias.aliasName}`,
+    //   },
+    //   statistic: 'Sum',
+    // });
+
+    // スケーリングポリシーの追加
+    // target.scaleOnMetric('RequestCountScaling', {
+    //   metric: requestCountMetric,
+    //   scalingSteps: [
+    //     { upper: 10, change: -1 },
+    //     { lower:30, change: +1 },
+    //     { lower: 50, change: +3 },
+    //   ],
+    //   adjustmentType: autoscaling.AdjustmentType.CHANGE_IN_CAPACITY,
+    // });
+
   }
 }

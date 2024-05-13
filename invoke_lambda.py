@@ -1,5 +1,8 @@
+#!/usr/bin/env python3
 import boto3
 import json
+import time
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # boto3クライアントの作成
@@ -11,13 +14,16 @@ def invoke_lambda(payload):
         InvocationType='RequestResponse',
         Payload=json.dumps(payload)
     )
-    return json.loads(response['Payload'].read())
+    # タイムスタンプを含むレスポンスを返す
+    response_data = json.loads(response['Payload'].read())
+    response_data['timestamp'] = datetime.now().isoformat()
+    return response_data
 
 # Lambda関数へのリクエストペイロード
 payload = {'key': 'value'}
 
-# 並列でLambdaを30回呼び出す
-def parallel_invoke_lambda(payload, count=30):
+# 並列でLambdaを指定回数呼び出す
+def parallel_invoke_lambda(payload, count=5):
     results = []
     with ThreadPoolExecutor(max_workers=count) as executor:
         futures = [executor.submit(invoke_lambda, payload) for _ in range(count)]
@@ -25,7 +31,7 @@ def parallel_invoke_lambda(payload, count=30):
             results.append(future.result())
     return results
 
-# 30回同時にLambdaを呼び出す
-results = parallel_invoke_lambda(payload, count=30)
+# Lambdaを指定回数同時に呼び出す
+results = parallel_invoke_lambda(payload, count=5)
 for result in results:
     print(result)
